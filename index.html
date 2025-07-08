@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flipbook – E-MODUL TIA</title>
+
+    <!-- jQuery & Turn.js -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/turn.min.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden; /* Hilangkan scroll seluruh halaman */
+      }
+
+      body {
+        background: #f0f0f0;
+        display: flex;
+        flex-direction: column; /* child tersusun vertikal */
+        justify-content: space-between;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      /* NAV ATAS */
+      #top-nav {
+        width: 100%;
+        background-color: black;
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        box-sizing: border-box;
+      }
+
+      #top-nav img {
+        height: 40px;
+        width: auto;
+      }
+
+      #magazine-container {
+        position: relative;
+        width: 90vw;
+        max-width: 700px;
+        height: 80vh;
+        overflow: hidden; /* Prevent Turn.js effect keluar */
+      }
+
+      #magazine {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+
+      #magazine .turn-page {
+        background-color: #f0f0f0;
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+      }
+
+      /* NAV BAWAH */
+      #nav-controls {
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        background-color: black;
+        width: 100%;
+      }
+
+      #nav-controls button {
+        background: #333;
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      #nav-controls button:hover {
+        background: #555;
+      }
+
+      #page-indicator {
+        background: #ccc;
+        color: #333;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      .custom-link-box {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #aabccc;
+        width: 235px;
+        height: 10px;
+        padding: 12px 0;
+        text-align: center;
+        font-weight: bold;
+        text-decoration: none;
+        color: #514b4b;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 20;
+      }
+
+      /* Default untuk layar besar (laptop/desktop) */
+      .custom-link-box {
+        top: 18%;
+      }
+
+      /* Jika mobile (max width 767px) */
+      @media (max-width: 767px) {
+        .custom-link-box {
+          top: 25%;
+        }
+      }
+
+      .custom-link-box:hover {
+        background-color: #9cb2c5;
+        color: #000;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- NAV ATAS -->
+    <div id="top-nav">
+      <img src="assets/logo-flip.png" alt="Logo Flipbook" />
+    </div>
+
+    <!-- FLIPBOOK -->
+    <div id="magazine-container">
+      <div id="magazine"></div>
+    </div>
+
+    <!-- NAV BAWAH -->
+    <div id="nav-controls">
+      <button id="first-page">⏮</button>
+      <button id="prev-page">⬅</button>
+      <span id="page-indicator">1/22</span>
+      <button id="next-page">➡</button>
+      <button id="last-page">⏭</button>
+    </div>
+
+    <!-- Suara Flip -->
+    <audio id="flip-sound" src="assets/flip.mp3" preload="auto"></audio>
+
+    <script>
+      $(document).ready(function () {
+        const totalPages = 22; // Total halaman
+        const magazine = $("#magazine");
+
+        // Generate halaman otomatis
+        for (let i = 0; i <= totalPages; i++) {
+          const pageNum = String(i).padStart(4, "0"); // 0001, 0002, dst
+          const page = document.createElement("div");
+          page.style.backgroundImage = `url(pages/E-MODUL_TIA_page-${pageNum}.jpg)`;
+
+          // ✅ Tambahkan video di halaman 10, 15, 18
+          if ([10, 15, 18].includes(i)) {
+            const videoWrapper = document.createElement("div");
+            videoWrapper.style.cssText = `
+              position: absolute;
+              top: 78%;
+              left: 5%;
+              width: 80%;
+              margin-left:5%;
+              margin-right:auto;
+              height:100px;
+              transform: translateY(-50%);
+              z-index: 1;
+            `;
+
+            const videoFile = {
+              10: "video-10.mp4",
+              15: "video-15.mp4",
+              18: "video-18.mp4",
+            }[i];
+
+            videoWrapper.innerHTML = `
+              <video src="assets/${videoFile}" controls style="width: 100%; height: 100%;"></video>
+            `;
+            page.appendChild(videoWrapper);
+          }
+
+          // ✅ Tambahkan custom link di halaman 20
+          if (i === 20) {
+            const linkDiv = document.createElement("a");
+            linkDiv.href = "https://forms.gle/9rMtmvQxwufzW15n8"; // Link Google Form
+            linkDiv.target = "_blank";
+            linkDiv.className = "custom-link-box";
+            linkDiv.innerText = "Isi Kuesioner di Sini";
+            page.appendChild(linkDiv);
+          }
+
+          magazine.append(page);
+        }
+
+        // Deteksi mobile
+        const isMobile = window.innerWidth < 768;
+
+        // Suara flip
+        const flipSound = document.getElementById("flip-sound");
+
+        // Inisialisasi turn.js
+        magazine.turn({
+          display: isMobile ? "single" : "double",
+          acceleration: true,
+          elevation: 50,
+          gradients: true,
+          autoCenter: true,
+          when: {
+            turned: function (e, page) {
+              $("#page-indicator").text(`${page}/${totalPages}`);
+              flipSound.play();
+            },
+          },
+        });
+
+        // Set indikator awal
+        $("#page-indicator").text(`1/${totalPages}`);
+
+        // Navigasi tombol
+        $("#first-page").on("click", function () {
+          magazine.turn("page", 1);
+        });
+        $("#last-page").on("click", function () {
+          magazine.turn("page", totalPages);
+        });
+        $("#prev-page").on("click", function () {
+          magazine.turn("previous");
+        });
+        $("#next-page").on("click", function () {
+          magazine.turn("next");
+        });
+
+        // Keyboard navigation
+        $(window).on("keydown", function (e) {
+          if (e.keyCode === 37) magazine.turn("previous");
+          if (e.keyCode === 39) magazine.turn("next");
+        });
+      });
+    </script>
+  </body>
+</html>
